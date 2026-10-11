@@ -45,6 +45,7 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 {
     [SerializeField] private Animator loopAnimator;
     [SerializeField] private Image animatedImage;
+    [SerializeField] private AudioSource soundSource;
     [SerializeField] private ClickAnimationMode mode;
 
     private ClickAnimationState state;
@@ -60,6 +61,17 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
         if (animatedImage == null && loopAnimator != null)
         {
             animatedImage = loopAnimator.GetComponent<Image>();
+        }
+
+        if (soundSource == null)
+        {
+            soundSource = GetComponent<AudioSource>();
+        }
+
+        if (soundSource != null)
+        {
+            soundSource.playOnAwake = false;
+            soundSource.loop = false;
         }
 
         state = new ClickAnimationState();
@@ -104,6 +116,11 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
             loopAnimator.enabled = true;
             loopAnimator.Rebind();
             loopAnimator.Update(0f);
+
+            if (soundSource != null && soundSource.clip != null)
+            {
+                soundSource.Play();
+            }
         }
         else
         {
@@ -122,6 +139,11 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
         if (loopAnimator != null)
         {
             loopAnimator.enabled = false;
+        }
+
+        if (soundSource != null)
+        {
+            soundSource.Stop();
         }
 
         if (animatedImage != null)

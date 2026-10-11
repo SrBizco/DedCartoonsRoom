@@ -31,16 +31,29 @@ public class BatPingPongSequenceTests
     }
 
     [Test]
-    public void ClickLoopState_TogglesTheLoopOnAndOff()
+    public void ToggleLoop_SecondClickStopsPlayback()
     {
-        var state = new ClickLoopState();
+        var state = new ClickAnimationState();
 
         Assert.IsFalse(state.IsPlaying);
-        Assert.IsTrue(state.Toggle());
+        Assert.AreEqual(ClickAnimationAction.Start, state.Click(ClickAnimationMode.ToggleLoop));
         Assert.IsTrue(state.IsPlaying);
-        Assert.IsFalse(state.Toggle());
+        Assert.AreEqual(ClickAnimationAction.Stop, state.Click(ClickAnimationMode.ToggleLoop));
         Assert.IsFalse(state.IsPlaying);
-        Assert.IsTrue(state.Toggle());
+        Assert.AreEqual(ClickAnimationAction.Start, state.Click(ClickAnimationMode.ToggleLoop));
         Assert.IsTrue(state.IsPlaying);
+    }
+
+    [Test]
+    public void PlayOnce_StopsOnCompletionAndCanBeStartedAgain()
+    {
+        var state = new ClickAnimationState();
+
+        Assert.AreEqual(ClickAnimationAction.Start, state.Click(ClickAnimationMode.PlayOnce));
+        Assert.AreEqual(ClickAnimationAction.None, state.Click(ClickAnimationMode.PlayOnce));
+        Assert.IsTrue(state.IsPlaying);
+        state.Complete();
+        Assert.IsFalse(state.IsPlaying);
+        Assert.AreEqual(ClickAnimationAction.Start, state.Click(ClickAnimationMode.PlayOnce));
     }
 }

@@ -3,8 +3,8 @@ guid: 59b58c0c9e484324cb2a8a65bab02b29
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4126336654979937068
-    second: PLANTA0024_0
+      213: -8000732354399173678
+    second: Planta0024_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -84,6 +84,32 @@ TextureImporter:
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
     buildTarget: Standalone
     maxTextureSize: 2048
     resizeAlgorithm: 0
@@ -126,12 +152,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: PLANTA0024_0
+      name: Planta0024_0
       rect:
         serializedVersion: 2
         x: 443
         y: 209
-        width: 335
+        width: 315
         height: 508
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -141,8 +167,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4dc4f30bcae4cb6c0800000000000000
-      internalID: -4126336654979937068
+      spriteID: 2d300193050b7f090800000000000000
+      internalID: -8000732354399173678
       vertices: []
       indices: 
       edges: []
@@ -161,7 +187,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      PLANTA0024_0: -4126336654979937068
+      Planta0024_0: -8000732354399173678
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

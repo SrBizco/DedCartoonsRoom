@@ -56,4 +56,56 @@ public class BatPingPongSequenceTests
         Assert.IsFalse(state.IsPlaying);
         Assert.AreEqual(ClickAnimationAction.Start, state.Click(ClickAnimationMode.PlayOnce));
     }
+
+    [Test]
+    public void SequentialPlaylist_ReturnsEachTrackThenStartsAgainFromTheFirst()
+    {
+        var playlist = new SequentialPlaylistState(3);
+
+        CollectionAssert.AreEqual(
+            new[] { 0, 1, 2, 0, 1 },
+            new[]
+            {
+                playlist.TakeNextIndex(),
+                playlist.TakeNextIndex(),
+                playlist.TakeNextIndex(),
+                playlist.TakeNextIndex(),
+                playlist.TakeNextIndex()
+            });
+    }
+
+    [Test]
+    public void SequentialPlaylist_WithNoTracks_ReturnsNoTrack()
+    {
+        var playlist = new SequentialPlaylistState(0);
+
+        Assert.AreEqual(-1, playlist.TakeNextIndex());
+    }
+
+    [Test]
+    public void SequentialPlaylist_SecondClickStopsWithoutConsumingTheNextTrack()
+    {
+        var playlist = new SequentialPlaylistState(3);
+
+        Assert.AreEqual(ClickAnimationAction.Start, playlist.Click());
+        Assert.AreEqual(0, playlist.TakeNextIndex());
+        Assert.AreEqual(ClickAnimationAction.Stop, playlist.Click());
+        Assert.AreEqual(ClickAnimationAction.Start, playlist.Click());
+        Assert.AreEqual(1, playlist.TakeNextIndex());
+    }
+
+    [Test]
+    public void SequentialPlaylist_CompletionStopsPlaybackWithoutResettingTheNextTrack()
+    {
+        var playlist = new SequentialPlaylistState(2);
+
+        playlist.Click();
+        playlist.TakeNextIndex();
+        playlist.Complete();
+
+        Assert.IsFalse(playlist.IsPlaying);
+        Assert.AreEqual(ClickAnimationAction.Start, playlist.Click());
+        Assert.AreEqual(1, playlist.TakeNextIndex());
+    }
+
 }

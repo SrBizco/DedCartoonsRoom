@@ -5,7 +5,8 @@ using UnityEngine.UI;
 public enum ClickAnimationMode
 {
     ToggleLoop,
-    PlayOnce
+    PlayOnce,
+    SequentialPlaylist
 }
 
 public enum ClickAnimationAction
@@ -41,15 +42,74 @@ public sealed class ClickAnimationState
     }
 }
 
+public sealed class SequentialPlaylistState
+{
+    private readonly int trackCount;
+    private int nextIndex;
+
+    public bool IsPlaying { get; private set; }
+
+    public SequentialPlaylistState(int trackCount)
+    {
+        this.trackCount = Mathf.Max(0, trackCount);
+    }
+
+    public int TakeNextIndex()
+    {
+        if (trackCount == 0)
+        {
+            return -1;
+        }
+
+        var selectedIndex = nextIndex;
+        nextIndex = (nextIndex + 1) % trackCount;
+        return selectedIndex;
+    }
+
+    public ClickAnimationAction Click()
+    {
+        if (trackCount == 0)
+        {
+            return ClickAnimationAction.None;
+        }
+
+        IsPlaying = !IsPlaying;
+        return IsPlaying ? ClickAnimationAction.Start : ClickAnimationAction.Stop;
+    }
+
+    public void Complete()
+    {
+        IsPlaying = false;
+    }
+
+    public void Reset()
+    {
+        nextIndex = 0;
+        IsPlaying = false;
+    }
+}
+
 public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 {
+    [Header("Optional animation")]
     [SerializeField] private Animator loopAnimator;
     [SerializeField] private Image animatedImage;
+
+    [SerializeField] private bool restartAnimationOnEachClick = true;
+
+    [Header("Optional audio")]
     [SerializeField] private AudioSource soundSource;
+    [SerializeField] private AudioClip[] audioClips;
+
+    [Header("Behaviour")]
     [SerializeField] private ClickAnimationMode mode;
+    [SerializeField] private bool hideVisualAfterClick;
+    [SerializeField] private Image visualToHide;
 
     private ClickAnimationState state;
+    private SequentialPlaylistState playlist;
     private Sprite baseSprite;
+    private bool interactionConsumed;
 
     private void Awake()
     {
@@ -75,33 +135,56 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
         }
 
         state = new ClickAnimationState();
+        playlist = new SequentialPlaylistState(audioClips == null ? 0 : audioClips.Length);
 
         if (animatedImage != null)
         {
             baseSprite = animatedImage.sprite;
         }
 
-        StopAnimation();
+        StopPlayback();
     }
 
     private void Update()
     {
-        if (mode != ClickAnimationMode.PlayOnce || !state.IsPlaying || loopAnimator == null)
+        if (mode == ClickAnimationMode.SequentialPlaylist)
+        {
+            StopSequentialPlaybackWhenAudioEnds();
+            return;
+        }
+
+        if (mode != ClickAnimationMode.PlayOnce || !state.IsPlaying)
         {
             return;
         }
 
-        if (loopAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f)
+        if (HasPlayOnceFinished())
         {
             state.Complete();
-            StopAnimation();
+            StopPlayback();
         }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (loopAnimator == null || animatedImage == null)
+        if (interactionConsumed)
         {
+            return;
+        }
+
+        if (mode == ClickAnimationMode.SequentialPlaylist)
+        {
+            var playlistAction = playlist.Click();
+            if (playlistAction == ClickAnimationAction.Start)
+            {
+                StartSequentialTrack();
+                ConsumeInteractionIfConfigured();
+            }
+            else if (playlistAction == ClickAnimationAction.Stop)
+            {
+                StopPlayback();
+            }
+
             return;
         }
 
@@ -113,28 +196,83 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 
         if (action == ClickAnimationAction.Start)
         {
-            loopAnimator.enabled = true;
-            loopAnimator.Rebind();
-            loopAnimator.Update(0f);
-
-            if (soundSource != null && soundSource.clip != null)
-            {
-                soundSource.Play();
-            }
+            StartPlayback(GetSingleAudioClip());
+            ConsumeInteractionIfConfigured();
         }
         else
         {
-            StopAnimation();
+            StopPlayback();
         }
     }
 
     private void OnDisable()
     {
         state?.Reset();
-        StopAnimation();
+        playlist?.Reset();
+        StopPlayback();
     }
 
-    private void StopAnimation()
+    private void StartSequentialTrack()
+    {
+        var clipIndex = playlist.TakeNextIndex();
+        var clip = clipIndex >= 0 ? audioClips[clipIndex] : GetSingleAudioClip();
+        StartPlayback(clip);
+    }
+
+    private void StopSequentialPlaybackWhenAudioEnds()
+    {
+        if (!playlist.IsPlaying || soundSource == null || soundSource.clip == null || soundSource.isPlaying)
+        {
+            return;
+        }
+
+        playlist.Complete();
+        StopPlayback();
+    }
+
+    private AudioClip GetSingleAudioClip()
+    {
+        if (audioClips != null && audioClips.Length > 0)
+        {
+            return audioClips[0];
+        }
+
+        return soundSource != null ? soundSource.clip : null;
+    }
+
+    private void StartPlayback(AudioClip clip)
+    {
+        if (loopAnimator != null)
+        {
+            var shouldRestart = restartAnimationOnEachClick || !loopAnimator.enabled;
+            loopAnimator.enabled = true;
+
+            if (shouldRestart)
+            {
+                loopAnimator.Rebind();
+                loopAnimator.Update(0f);
+            }
+        }
+
+        if (soundSource != null && clip != null)
+        {
+            soundSource.Stop();
+            soundSource.clip = clip;
+            soundSource.Play();
+        }
+    }
+
+    private bool HasPlayOnceFinished()
+    {
+        if (loopAnimator != null && loopAnimator.enabled)
+        {
+            return loopAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f;
+        }
+
+        return soundSource == null || soundSource.clip == null || !soundSource.isPlaying;
+    }
+
+    private void StopPlayback()
     {
         if (loopAnimator != null)
         {
@@ -149,6 +287,27 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
         if (animatedImage != null)
         {
             animatedImage.sprite = baseSprite;
+        }
+    }
+
+    private void ConsumeInteractionIfConfigured()
+    {
+        if (!hideVisualAfterClick)
+        {
+            return;
+        }
+
+        interactionConsumed = true;
+
+        if (visualToHide != null)
+        {
+            visualToHide.enabled = false;
+        }
+
+        var hitboxGraphic = GetComponent<Graphic>();
+        if (hitboxGraphic != null)
+        {
+            hitboxGraphic.raycastTarget = false;
         }
     }
 }

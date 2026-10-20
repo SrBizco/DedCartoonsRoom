@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f0d520723da9a4547bd4cdcd83fb420b
+guid: b13b427e0203a7e47b4547f857e34f0d
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5747560482341618638
-    second: REPISA PUERTA_0
+      213: 3422698697329739503
+    second: REPISA PUERTA1000_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -152,12 +152,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: REPISA PUERTA_0
+      name: REPISA PUERTA1000_0
       rect:
         serializedVersion: 2
-        x: 0
+        x: 123
         y: 812
-        width: 312
+        width: 313
         height: 268
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -167,8 +167,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ec38b0b8ecf63cf40800000000000000
-      internalID: 5747560482341618638
+      spriteID: fe6088bb45edf7f20800000000000000
+      internalID: 3422698697329739503
       vertices: []
       indices: 
       edges: []
@@ -187,7 +187,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      REPISA PUERTA_0: 5747560482341618638
+      REPISA PUERTA1000_0: 3422698697329739503
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

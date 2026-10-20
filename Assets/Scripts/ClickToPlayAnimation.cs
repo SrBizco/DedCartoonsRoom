@@ -89,6 +89,32 @@ public sealed class SequentialPlaylistState
     }
 }
 
+public sealed class OneShotAudioSequenceState
+{
+    private readonly int clipCount;
+    private int nextIndex;
+
+    public OneShotAudioSequenceState(int clipCount)
+    {
+        this.clipCount = Mathf.Max(0, clipCount);
+    }
+
+    public int TakeNextIndex()
+    {
+        if (nextIndex >= clipCount)
+        {
+            return -1;
+        }
+
+        return nextIndex++;
+    }
+
+    public void Reset()
+    {
+        nextIndex = 0;
+    }
+}
+
 public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 {
     [Header("Optional animation")]
@@ -108,6 +134,7 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 
     private ClickAnimationState state;
     private SequentialPlaylistState playlist;
+    private OneShotAudioSequenceState oneShotAudioSequence;
     private Sprite baseSprite;
     private bool interactionConsumed;
 
@@ -136,6 +163,7 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 
         state = new ClickAnimationState();
         playlist = new SequentialPlaylistState(audioClips == null ? 0 : audioClips.Length);
+        oneShotAudioSequence = new OneShotAudioSequenceState(audioClips == null ? 0 : audioClips.Length);
 
         if (animatedImage != null)
         {
@@ -154,6 +182,11 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
         }
 
         if (mode != ClickAnimationMode.PlayOnce || !state.IsPlaying)
+        {
+            return;
+        }
+
+        if (TryPlayNextOneShotClip())
         {
             return;
         }
@@ -196,7 +229,7 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 
         if (action == ClickAnimationAction.Start)
         {
-            StartPlayback(GetSingleAudioClip());
+            StartPlayback(mode == ClickAnimationMode.PlayOnce ? GetFirstOneShotClip() : GetSingleAudioClip());
             ConsumeInteractionIfConfigured();
         }
         else
@@ -209,6 +242,7 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
     {
         state?.Reset();
         playlist?.Reset();
+        oneShotAudioSequence?.Reset();
         StopPlayback();
     }
 
@@ -240,6 +274,29 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
         return soundSource != null ? soundSource.clip : null;
     }
 
+    private AudioClip GetFirstOneShotClip()
+    {
+        var clipIndex = oneShotAudioSequence.TakeNextIndex();
+        return clipIndex >= 0 ? audioClips[clipIndex] : GetSingleAudioClip();
+    }
+
+    private bool TryPlayNextOneShotClip()
+    {
+        if (soundSource == null || soundSource.isPlaying)
+        {
+            return false;
+        }
+
+        var clipIndex = oneShotAudioSequence.TakeNextIndex();
+        if (clipIndex < 0)
+        {
+            return false;
+        }
+
+        PlayAudio(audioClips[clipIndex]);
+        return true;
+    }
+
     private void StartPlayback(AudioClip clip)
     {
         if (loopAnimator != null)
@@ -254,6 +311,11 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
             }
         }
 
+        PlayAudio(clip);
+    }
+
+    private void PlayAudio(AudioClip clip)
+    {
         if (soundSource != null && clip != null)
         {
             soundSource.Stop();

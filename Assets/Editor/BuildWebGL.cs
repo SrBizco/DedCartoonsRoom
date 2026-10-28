@@ -98,7 +98,20 @@ public static class BuildWebGL
         var html = File.ReadAllText(indexPath);
         html = Regex.Replace(html, @"canvas\.style\.width = ""\d+px"";\s*canvas\.style\.height = ""\d+px"";", @"canvas.style.width = ""960px"";
         canvas.style.height = ""540px"";");
-        html = html.Replace("// config.matchWebGLToCanvasSize = false;", "config.matchWebGLToCanvasSize = false;");
+        const string deviceModeMarker = "const dedIsMobile";
+        if (!html.Contains(deviceModeMarker))
+        {
+            html = html.Replace(
+                "// config.matchWebGLToCanvasSize = false;",
+                "const dedIsMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);\n" +
+                "      if (!dedIsMobile) {\n" +
+                "        config.matchWebGLToCanvasSize = false;\n" +
+                "      }");
+            html = html.Replace(
+                "if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {",
+                "if (dedIsMobile) {");
+            html = html.Replace("// config.devicePixelRatio = 1;", "config.devicePixelRatio = 1;");
+        }
         const string instanceHook = "window.dedUnityInstance = unityInstance;";
 
         if (!html.Contains(instanceHook))
@@ -113,7 +126,9 @@ public static class BuildWebGL
     <style>
       {integrationStyleMarker}
       html, body {{ width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }}
+      #unity-canvas {{ background: #000; }}
       #unity-container.unity-desktop {{ transform: translate(-50%, -50%) scale(1.35); }}
+      .unity-mobile #unity-canvas {{ width: 100%; height: auto; aspect-ratio: 16 / 9; position: absolute; top: 50%; transform: translateY(-50%); }}
       #unity-footer {{ display: none; }}
     </style>";
             html = html.Replace("</head>", $"{integrationStyle}\n  </head>");

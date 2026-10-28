@@ -52,13 +52,29 @@ public sealed class MixerTransportState
 public sealed class MixerTransportController : MonoBehaviour
 {
     [SerializeField] private AudioSource[] tracks;
-    [SerializeField, Min(0f)] private float scheduledStartDelay = 0.1f;
+
+    [Header("Optional transport visuals")]
+    [SerializeField] private GameObject playOnVisual;
+    [SerializeField] private GameObject pauseOnVisual;
+    [SerializeField] private GameObject restartOnVisual;
 
     private MixerTransportState state;
 
     private void Awake()
     {
         state = new MixerTransportState();
+        SetActiveTransportVisual(null);
+    }
+
+    public void PreloadTrackAudioData()
+    {
+        ForEachTrack(track =>
+        {
+            if (track.clip != null && track.clip.loadState != AudioDataLoadState.Loaded)
+            {
+                track.clip.LoadAudioData();
+            }
+        });
     }
 
     public void PlayAll()
@@ -67,17 +83,21 @@ public sealed class MixerTransportController : MonoBehaviour
 
         if (action == MixerTransportAction.Start)
         {
-            var startTime = AudioSettings.dspTime + scheduledStartDelay;
             ForEachTrack(track =>
             {
                 track.Stop();
                 track.time = 0f;
-                track.PlayScheduled(startTime);
+                track.Play();
             });
         }
         else if (action == MixerTransportAction.Resume)
         {
             ForEachTrack(track => track.UnPause());
+        }
+
+        if (action != MixerTransportAction.None)
+        {
+            SetActiveTransportVisual(playOnVisual);
         }
     }
 
@@ -86,6 +106,7 @@ public sealed class MixerTransportController : MonoBehaviour
         if (state.Pause() == MixerTransportAction.Pause)
         {
             ForEachTrack(track => track.Pause());
+            SetActiveTransportVisual(pauseOnVisual);
         }
     }
 
@@ -97,6 +118,8 @@ public sealed class MixerTransportController : MonoBehaviour
             track.Stop();
             track.time = 0f;
         });
+
+        SetActiveTransportVisual(restartOnVisual);
     }
 
     private void ForEachTrack(System.Action<AudioSource> action)
@@ -112,6 +135,21 @@ public sealed class MixerTransportController : MonoBehaviour
             {
                 action(track);
             }
+        }
+    }
+
+    private void SetActiveTransportVisual(GameObject activeVisual)
+    {
+        SetVisualActive(playOnVisual, activeVisual == playOnVisual && activeVisual != null);
+        SetVisualActive(pauseOnVisual, activeVisual == pauseOnVisual && activeVisual != null);
+        SetVisualActive(restartOnVisual, activeVisual == restartOnVisual && activeVisual != null);
+    }
+
+    private static void SetVisualActive(GameObject visual, bool isActive)
+    {
+        if (visual != null)
+        {
+            visual.SetActive(isActive);
         }
     }
 }

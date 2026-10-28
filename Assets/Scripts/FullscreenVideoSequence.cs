@@ -55,10 +55,12 @@ public sealed class FullscreenVideoSequence : MonoBehaviour, IPointerClickHandle
 {
     [Header("Background loop")]
     [SerializeField] private VideoPlayer backgroundVideoPlayer;
+    [SerializeField] private string webGlBackgroundVideoPath = "Videos/background.mp4";
 
     [Header("One-shot sequence")]
     [SerializeField] private VideoPlayer sequenceVideoPlayer;
     [SerializeField] private GameObject sequenceVisual;
+    [SerializeField] private string webGlSequenceVideoPath = "Videos/dander-talk.mp4";
 
     [Header("Optional audio to pause")]
     [SerializeField] private AudioSource ambientAudioSource;
@@ -71,6 +73,9 @@ public sealed class FullscreenVideoSequence : MonoBehaviour, IPointerClickHandle
     {
         state = new FullscreenVideoSequenceState();
         audioResumeState = new PausedAudioResumeState();
+
+        WebGLVideoUrl.Configure(backgroundVideoPlayer, webGlBackgroundVideoPath);
+        WebGLVideoUrl.Configure(sequenceVideoPlayer, webGlSequenceVideoPath);
 
         if (sequenceVisual != null)
         {

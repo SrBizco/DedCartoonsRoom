@@ -2,6 +2,22 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
 
+public static class WebGLVideoUrl
+{
+    public static void Configure(VideoPlayer videoPlayer, string relativePath)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (videoPlayer == null || string.IsNullOrWhiteSpace(relativePath))
+        {
+            return;
+        }
+
+        videoPlayer.source = VideoSource.Url;
+        videoPlayer.url = $"{Application.streamingAssetsPath}/{relativePath}";
+#endif
+    }
+}
+
 public sealed class IntroVideoState
 {
     public bool HasStarted { get; private set; }
@@ -52,6 +68,7 @@ public sealed class IntroVideoScreen : MonoBehaviour
     [SerializeField] private VideoPlayer introVideoPlayer;
     [SerializeField] private ScreenNavigator screenNavigator;
     [SerializeField] private AudioSource backgroundAudioSource;
+    [SerializeField] private string webGlVideoPath = "Videos/intro.mp4";
 
     private IntroVideoState state;
 
@@ -61,6 +78,7 @@ public sealed class IntroVideoScreen : MonoBehaviour
 
         if (introVideoPlayer != null)
         {
+            WebGLVideoUrl.Configure(introVideoPlayer, webGlVideoPath);
             introVideoPlayer.playOnAwake = false;
             introVideoPlayer.isLooping = false;
             introVideoPlayer.waitForFirstFrame = true;
@@ -108,6 +126,19 @@ public sealed class IntroVideoScreen : MonoBehaviour
             return;
         }
 
+        if (introVideoPlayer == null)
+        {
+            OpenRoom();
+            return;
+        }
+
+        introVideoPlayer.Stop();
+        introVideoPlayer.time = 0d;
+        introVideoPlayer.Prepare();
+    }
+
+    public void RestartIntroAfterUserGesture()
+    {
         if (introVideoPlayer == null)
         {
             OpenRoom();

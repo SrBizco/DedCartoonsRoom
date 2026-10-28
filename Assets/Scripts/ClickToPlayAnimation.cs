@@ -6,7 +6,8 @@ public enum ClickAnimationMode
 {
     ToggleLoop,
     PlayOnce,
-    SequentialPlaylist
+    SequentialPlaylist,
+    PlayAllOnce
 }
 
 public enum ClickAnimationAction
@@ -22,7 +23,7 @@ public sealed class ClickAnimationState
 
     public ClickAnimationAction Click(ClickAnimationMode mode)
     {
-        if (mode == ClickAnimationMode.PlayOnce && IsPlaying)
+        if ((mode == ClickAnimationMode.PlayOnce || mode == ClickAnimationMode.PlayAllOnce) && IsPlaying)
         {
             return ClickAnimationAction.None;
         }
@@ -161,6 +162,8 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
             soundSource.loop = false;
         }
 
+        PreloadAudioData();
+
         state = new ClickAnimationState();
         playlist = new SequentialPlaylistState(audioClips == null ? 0 : audioClips.Length);
         oneShotAudioSequence = new OneShotAudioSequenceState(audioClips == null ? 0 : audioClips.Length);
@@ -181,12 +184,12 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
             return;
         }
 
-        if (mode != ClickAnimationMode.PlayOnce || !state.IsPlaying)
+        if ((mode != ClickAnimationMode.PlayOnce && mode != ClickAnimationMode.PlayAllOnce) || !state.IsPlaying)
         {
             return;
         }
 
-        if (TryPlayNextOneShotClip())
+        if (mode == ClickAnimationMode.PlayOnce && TryPlayNextOneShotClip())
         {
             return;
         }
@@ -229,7 +232,15 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 
         if (action == ClickAnimationAction.Start)
         {
-            StartPlayback(mode == ClickAnimationMode.PlayOnce ? GetFirstOneShotClip() : GetSingleAudioClip());
+            if (mode == ClickAnimationMode.PlayAllOnce)
+            {
+                StartAllOneShotPlayback();
+            }
+            else
+            {
+                StartPlayback(mode == ClickAnimationMode.PlayOnce ? GetFirstOneShotClip() : GetSingleAudioClip());
+            }
+
             ConsumeInteractionIfConfigured();
         }
         else
@@ -299,6 +310,44 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
 
     private void StartPlayback(AudioClip clip)
     {
+        StartAnimation();
+        PlayAudio(clip);
+    }
+
+    private void StartAllOneShotPlayback()
+    {
+        StartAnimation();
+
+        if (soundSource == null)
+        {
+            return;
+        }
+
+        soundSource.Stop();
+
+        var playedAtLeastOneClip = false;
+        if (audioClips != null)
+        {
+            foreach (var clip in audioClips)
+            {
+                if (clip == null)
+                {
+                    continue;
+                }
+
+                soundSource.PlayOneShot(clip);
+                playedAtLeastOneClip = true;
+            }
+        }
+
+        if (!playedAtLeastOneClip && soundSource.clip != null)
+        {
+            soundSource.Play();
+        }
+    }
+
+    private void StartAnimation()
+    {
         if (loopAnimator != null)
         {
             var shouldRestart = restartAnimationOnEachClick || !loopAnimator.enabled;
@@ -311,7 +360,6 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
             }
         }
 
-        PlayAudio(clip);
     }
 
     private void PlayAudio(AudioClip clip)
@@ -331,7 +379,7 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
             return loopAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f;
         }
 
-        return soundSource == null || soundSource.clip == null || !soundSource.isPlaying;
+        return soundSource == null || !soundSource.isPlaying;
     }
 
     private void StopPlayback()
@@ -370,6 +418,32 @@ public sealed class ClickToPlayAnimation : MonoBehaviour, IPointerClickHandler
         if (hitboxGraphic != null)
         {
             hitboxGraphic.raycastTarget = false;
+        }
+    }
+
+    public void PreloadAudioData()
+    {
+        if (soundSource == null)
+        {
+            soundSource = GetComponent<AudioSource>();
+        }
+
+        if (soundSource != null && soundSource.clip != null && soundSource.clip.loadState != AudioDataLoadState.Loaded)
+        {
+            soundSource.clip.LoadAudioData();
+        }
+
+        if (audioClips == null)
+        {
+            return;
+        }
+
+        foreach (var clip in audioClips)
+        {
+            if (clip != null && clip.loadState != AudioDataLoadState.Loaded)
+            {
+                clip.LoadAudioData();
+            }
         }
     }
 }
